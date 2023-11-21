@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Models.ViewModels;
 using SalesWebMvc.Data;
 using SalesWebMvc.Models;
 using SalesWebMvc.Models.ViewModels;
 using SalesWebMvc.Services;
 using SalesWebMvc.Services.Exceptions;
+using System.Diagnostics;
 
 namespace SalesWebMvc.Controllers
 {
@@ -49,12 +51,12 @@ namespace SalesWebMvc.Controllers
         {
             if (id == null)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided"});
             }
 
             var seller = _sellerService.FindById(id);
 
-            if (seller == null) return NotFound();
+            if (seller == null) return RedirectToAction(nameof(Error), new { message = "Id not found" });
 
             return View(seller);
         }
@@ -71,12 +73,12 @@ namespace SalesWebMvc.Controllers
         public IActionResult Details(int? id)
         {
             if (id == null)
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
 
             var seller = _sellerService.FindById(id);
 
             if (seller == null)
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
 
             return View(seller);
         }
@@ -85,12 +87,12 @@ namespace SalesWebMvc.Controllers
         public IActionResult Edit(int? id)
         {
             if (id == null)
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not provided" });
 
             var seller = _sellerService.FindById(id);
 
             if (seller == null)
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = "Id not found" });
 
             List<Department> departments = _departmentService.FindAll();
             SellerFormViewModel viewModel = new SellerFormViewModel { Seller = seller, Departments = departments };
@@ -104,22 +106,33 @@ namespace SalesWebMvc.Controllers
         public IActionResult Edit(int id, Seller seller)
         {
             if (id != seller.Id)
-                return BadRequest();
-
+                return RedirectToAction(nameof(Error), new { message = "Id mismatch" });
 
             try
             {
                 _sellerService.Update(seller);
                 return RedirectToAction(nameof(Index));
-            }catch(NotFoundException ex)
+            }
+            catch (NotFoundException ex)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Error), new { message = ex.Message });
             }
             catch (DbConcurrentException ex)
             {
-                return BadRequest();
+                return RedirectToAction(nameof(Error), new { message = ex.Message });
             }
 
+        }
+
+        public IActionResult Error(string Message)
+        {
+            ErrorViewModel viewModel = new ErrorViewModel
+            {
+                Message = Message,
+                RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+            };
+
+            return View(viewModel);
         }
     }
 }
